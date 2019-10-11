@@ -5,7 +5,7 @@ dotenv.config({ path: `${__dirname}/.env` });
 const GITHUB_API_USER = process.env.GITHUB_API_USER!;
 const GITHUB_API_TOKEN = process.env.GITHUB_API_TOKEN!;
 const GITHUB_ORG = process.env.GITHUB_ORG!;
-const FILTER_REPOS = process.env.FILTER_REPOS!.split(",");
+const TARGET_REPOS = process.env.TARGET_REPOS!.split(",");
 const LABEL_PREFIX_FROM = process.env.LABEL_PREFIX_FROM!;
 const LABEL_PREFIX_TO = process.env.LABEL_PREFIX_TO!;
 
@@ -23,23 +23,33 @@ const flatten = < T = any > (arr: T[][]) => {
 
     // Get repos
     let repos = (
-        await Promise.all(FILTER_REPOS.map((repo_name)=>(octokit.repos.get({ owner: GITHUB_ORG, repo:repo_name }))))
-    ).map((resp)=>(resp.data))
+        await Promise.all(TARGET_REPOS.map((repo_name)=>(octokit.repos.get({ owner: GITHUB_ORG, repo:repo_name }))))
+    ).map((resp)=>(resp.data));
 
     // Get labels
-    let repoLabelsPairs = (await Promise.all(repos.map((repo) => 
-        (
-            octokit.issues.listLabelsForRepo({
-                owner: repo.owner.login,
-                repo: repo.name,
-                per_page: 100,
-            }).then((resp)=>({
-                repo:repo,
-                labels:resp.data.map((l)=>(l.name)).filter((l)=>
+    let repoLabelsPairs = (await Promise.all(repos.map(async (repo) => {
+            let page = 1;
+            let labels: string[] = [];
+            while (true) {
+                let resp = await octokit.issues.listLabelsForRepo({
+                    owner: GITHUB_ORG,
+                    repo: repo.name,
+                    page: page,
+                    per_page: 100
+                });
+                labels = labels.concat(resp.data.map((l)=>(l.name)).filter((l)=>
                     (LABEL_PREFIX_FROM <= l && l <= LABEL_PREFIX_TO)
-                )
-            }))
-        )
+                ))
+                if (resp.data.length == 0) {
+                    break;
+                }
+                page++;
+            }
+            return {
+                repo:repo,
+                labels:labels
+            }
+        }
     )))
 
     // Get pull-requests
@@ -49,7 +59,8 @@ const flatten = < T = any > (arr: T[][]) => {
                 owner: GITHUB_ORG,
                 repo: p.repo.name,
                 labels: label,
-                state: "all"
+                state: "all",
+                per_page: 100
             }).then((resp)=>({
                 label:label,
                 pull_requests: resp.data
