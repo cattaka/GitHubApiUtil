@@ -85,10 +85,21 @@ const flatten = < T = any > (arr: T[][]) => {
     ))
     let results = flatten(flatten(resultsArrayArray))
 
-    console.log("label\trepo\ttitle\turl")
-    results.sort(
-        (a,b)=>((a.label > b.label) ? 1 : (a.label < b.label) ? -1 : (a.repo > b.repo) ? 1 : (a.repo < b.repo) ? -1 : 0 )
-    ).forEach((r)=>{
-        console.log(`${r.label}\t${r.repo}\t${r.title}\t${r.url}`)
+    // console.log("label\trepo\ttitle\turl")
+    // results.sort(
+    //     (a,b)=>((a.label > b.label) ? 1 : (a.label < b.label) ? -1 : (a.repo > b.repo) ? 1 : (a.repo < b.repo) ? -1 : 0 )
+    // ).forEach((r)=>{
+    //     console.log(`${r.label}\t${r.repo}\t${r.title}\t${r.url}`)
+    // })
+
+    repo2label2pull_requestsArray.forEach((repo2label2pull_requests)=>{
+        console.log(repo2label2pull_requests.repo.name)
+        repo2label2pull_requests.label2pull_requests.forEach((label2pull_requests)=>{
+            label2pull_requests.pull_requests.forEach((pull_request)=>{
+                console.log("- " + pull_request.title)
+                console.log("  - " + pull_request.html_url)
+            })
+        })
     })
+
 })()
